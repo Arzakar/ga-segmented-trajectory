@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="2024-01-24--01-add-celestial_body_name_type" author="Stepan_Klimashin">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*) FROM pg_type WHERE typname = 'celestial_body_name_type'
+            </sqlCheck>
+        </preConditions>
+
+        <sql>CREATE TYPE celestial_body_name_type AS ENUM ('EARTH', 'SOLAR')</sql>
+    </changeSet>
+
+    <changeSet id="2024-01-24--02-add-celestial_body-table" author="Stepan_Klimashin">
+        <createTable tableName="celestial_body">
+            <column name="name" type="celestial_body_name_type">
+                <constraints nullable="false"
+                             primaryKey="true"
+                             primaryKeyName="celestial_body_pk"/>
+            </column>
+            <column name="mass" type="DOUBLE"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="2024-01-24--03-add-orbit-table" author="Stepan_Klimashin">
+        <createTable tableName="orbit">
+            <column name="id" type="VARCHAR">
+                <constraints nullable="false"
+                             primaryKey="true"
+                             primaryKeyName="orbit_pk"/>
+            </column>
+            <column name="apocenter" type="DOUBLE"/>
+            <column name="pericenter" type="DOUBLE"/>
+            <column name="semi_major_axis" type="DOUBLE"/>
+            <column name="eccentricity" type="DOUBLE"/>
+            <column name="inclination" type="DOUBLE"/>
+            <column name="longitude_asc_node" type="DOUBLE"/>
+            <column name="perihelion_argument" type="DOUBLE"/>
+            <column name="attracting_body_id" type="celestial_body_name_type">
+                <constraints nullable="false"
+                             foreignKeyName="orbit_attracting_body_id_celestial_body_name_fk"
+                             referencedTableName="celestial_body"
+                             referencedColumnNames="name"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="2024-01-24--04-add-orbit_id-column" author="Stepan_Klimashin">
+        <addColumn tableName="celestial_body">
+            <column name="orbit_id" type="VARCHAR">
+                <constraints foreignKeyName="celestial_body_orbit_id_orbit_id_fk"
+                             referencedTableName="orbit"
+                             referencedColumnNames="id"/>
+            </column>
+        </addColumn>
+    </changeSet>
+</databaseChangeLog>

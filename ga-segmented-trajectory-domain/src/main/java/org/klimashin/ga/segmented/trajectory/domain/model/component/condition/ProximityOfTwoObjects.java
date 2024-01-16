@@ -3,6 +3,9 @@ package org.klimashin.ga.segmented.trajectory.domain.model.component.condition;
 import org.klimashin.ga.segmented.trajectory.domain.model.component.MassParticle;
 import org.klimashin.ga.segmented.trajectory.domain.util.common.Points;
 
+import lombok.Builder;
+
+@Builder
 public record ProximityOfTwoObjects(MassParticle firstParticle,
                                     MassParticle secondParticle,
                                     double requiredDistance) implements TargetState {

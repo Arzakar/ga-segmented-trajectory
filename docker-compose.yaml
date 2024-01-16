@@ -1,9 +1,12 @@
 services:
-  postgres:
-    image: 'postgres:latest'
+  ga-segmented-trajectory-postgres:
+    image: postgres:latest
     environment:
-      - 'POSTGRES_DB=mydatabase'
-      - 'POSTGRES_PASSWORD=secret'
-      - 'POSTGRES_USER=myuser'
+      POSTGRES_USER: GA_SEGMENTED_TRAJECTORY
+      POSTGRES_PASSWORD: GA_SEGMENTED_TRAJECTORY
+      POSTGRES_DB: GA_SEGMENTED_TRAJECTORY
+      PGDATA: '/var/lib/postgresql/data/docker-data/ga-segmented-trajectory'
     ports:
-      - '5432'
+      - 5432:5432
+    volumes:
+      - .:/var/lib/postgresql/data

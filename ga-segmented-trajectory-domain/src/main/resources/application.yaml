@@ -1,1 +1,24 @@
+server:
+  port: 8080
 
+
+spring:
+  application:
+    name: ga-segmented-trajectory
+
+  datasource:
+    url: jdbc:postgresql://host.docker.internal:5432/GA_SEGMENTED_TRAJECTORY
+    username: GA_SEGMENTED_TRAJECTORY
+    password: GA_SEGMENTED_TRAJECTORY
+    driver-class-name: org.postgresql.Driver
+
+  liquibase:
+    enabled: true
+    change-log: classpath:/db/changelog/changelog-master.xml
+
+#  jpa:
+#    hibernate:
+#      ddl-auto: create-drop
+logging:
+  level:
+    org.klimashin.ga.segmented.trajectory.domain.application.facade: debug

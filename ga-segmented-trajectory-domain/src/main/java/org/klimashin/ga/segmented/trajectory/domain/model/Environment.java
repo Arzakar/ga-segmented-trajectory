@@ -57,7 +57,6 @@ public class Environment {
                                         .trueAnomaly(celestialBody.getOrbit().getTrueAnomaly())
                                         .zeroEpoch(celestialBody.getOrbit().getZeroEpoch())
                                         .build())
-                                .textName(celestialBody.getTextName())
                                 .name(celestialBody.getName())
                                 .build()
                         ).collect(Collectors.toMap(CelestialBody::getName, Function.identity())))
@@ -69,6 +68,7 @@ public class Environment {
                         .thrust(spacecraft.getThrust())
                         .fuelConsumption(spacecraft.getFuelConsumption())
                         .build())
+                .time(getCurrentTime())
                 .build();
     }
 }

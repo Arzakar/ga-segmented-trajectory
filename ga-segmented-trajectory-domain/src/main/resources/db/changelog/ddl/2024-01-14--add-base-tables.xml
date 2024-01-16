@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="2024-01-14--01-create-fvd_calculation_initial-tables" author="Stepan.Klimashin">
+        <preConditions onError="HALT">
+            <not>
+                <tableExists tableName="fvd_calculation_initial"/>
+            </not>
+        </preConditions>
+
+        <createTable tableName="fvd_calculation_initial">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true"
+                             primaryKeyName="fvd_calculation_initial_pk"/>
+            </column>
+            <column name="central_body_initial_state" type="java.sql.Types.LONGVARCHAR">
+                <constraints nullable="false"/>
+            </column>
+            <column name="celestial_bodies_initial_state" type="java.sql.Types.LONGVARCHAR">
+                <constraints nullable="false"/>
+            </column>
+            <column name="command_profile_setup" type="java.sql.Types.LONGVARCHAR">
+                <constraints nullable="false"/>
+            </column>
+            <column name="target_state_type" type="java.sql.Types.LONGVARCHAR">
+                <constraints nullable="false"/>
+            </column>
+            <column name="target_state_setup" type="java.sql.Types.LONGVARCHAR">
+                <constraints nullable="false"/>
+            </column>
+            <column name="spacecraft_initial_state" type="java.sql.Types.LONGVARCHAR">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_calculated_command_profile" type="java.sql.Types.LONGVARCHAR"/>
+            <column name="hash_code" type="java.sql.Types.INTEGER">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="2024-01-14--02-create-fvd_calculation_result-tables" author="Stepan.Klimashin">
+        <preConditions onError="HALT">
+            <not>
+                <tableExists tableName="fvd_calculation_result"/>
+            </not>
+        </preConditions>
+
+        <createTable tableName="fvd_calculation_result">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true"
+                             primaryKeyName="fvd_calculation_result_pk"/>
+            </column>
+            <column name="initial_state_id" type="UUID">
+                <constraints referencedTableName="fvd_calculation_initial"
+                             referencedColumnNames="id"
+                             foreignKeyName="fvd_calculation_result_initial_state_id_fvd_calculation_initial_id"
+                             nullable="false"/>
+            </column>
+            <column name="central_body_result_state" type="java.sql.Types.LONGVARCHAR">
+                <constraints nullable="false"/>
+            </column>
+            <column name="celestial_bodies_result_state" type="java.sql.Types.LONGVARCHAR">
+                <constraints nullable="false"/>
+            </column>
+            <column name="command_profile" type="java.sql.Types.LONGVARCHAR">
+                <constraints nullable="false"/>
+            </column>
+            <column name="target_state_is_achieved" type="java.sql.Types.BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duration" type="java.sql.Types.BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>

@@ -10,8 +10,8 @@ import lombok.experimental.FieldDefaults;
 @Getter
 @ToString
 @EqualsAndHashCode
+@AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class Point {
 
     double x;

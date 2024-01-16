@@ -7,9 +7,8 @@ import org.klimashin.ga.segmented.trajectory.domain.model.component.CelestialBod
 import org.klimashin.ga.segmented.trajectory.domain.model.component.Orbit;
 import org.klimashin.ga.segmented.trajectory.domain.model.component.Spacecraft;
 import org.klimashin.ga.segmented.trajectory.domain.model.component.condition.ProximityOfTwoObjects;
-import org.klimashin.ga.segmented.trajectory.domain.model.component.profile.FixedVectorDeviationCommandProfile;
+import org.klimashin.ga.segmented.trajectory.domain.model.component.profile.FvdCommandProfile;
 import org.klimashin.ga.segmented.trajectory.domain.util.common.Points;
-import org.klimashin.ga.segmented.trajectory.domain.util.component.LongPair;
 import org.klimashin.ga.segmented.trajectory.domain.util.component.Point;
 import org.klimashin.ga.segmented.trajectory.domain.util.component.Vector;
 
@@ -38,7 +37,6 @@ class DemoTest {
                         .trueAnomaly(0)
                         .zeroEpoch(0)
                         .build())
-                .textName("Earth")
                 .name(CelestialBodyName.EARTH)
                 .build();
         var spacecraft = Spacecraft.builder()
@@ -50,10 +48,10 @@ class DemoTest {
                 .fuelConsumption(0.000010)
                 .build();
         var intervals = Map.of(
-                LongPair.of(0L, Duration.ofDays(15).toSeconds()), Math.toRadians(-40),
-                LongPair.of(Duration.ofDays(15).toSeconds(), Duration.ofDays(105).toSeconds()), Math.toRadians(160)
+                Duration.ofDays(15).toSeconds(), Math.toRadians(-40),
+                Duration.ofDays(105).toSeconds(), Math.toRadians(160)
         );
-        var commandProfile = new FixedVectorDeviationCommandProfile(spacecraft, solar, intervals);
+        var commandProfile = new FvdCommandProfile(spacecraft, solar, intervals);
         var targetState = new ProximityOfTwoObjects(spacecraft, earth, Math.pow(10, 9));
 
         return Environment.builder()
@@ -95,15 +93,12 @@ class DemoTest {
             var scY = String.format(numberFormat, spacecraft.getPosition().getY() / rate);
             var scV = String.format(numberFormat, spacecraft.getSpeed().getScalar());
             var scMass = String.format(numberFormat, spacecraft.getMass());
-            var trueAnomaly = String.format("%.3f", Math.toDegrees(earth.getOrbit().getTrueAnomaly()));
+            var trueAnomaly = String.format("%.3f", earth.getOrbit().getTrueAnomaly());
             var distance = String.format(numberFormat, Points.distanceBetween(env.getCelestialBodies().get(CelestialBodyName.EARTH).getPosition(), env.getSpacecraft().getPosition()) / rate);
-            System.out.println(
-                    String.format("%10s", earthX) + "   |"
-                            + String.format("%10s", earthY) + "   |"
-                            + String.format("%10s", scX) + "   |"
-                            + String.format("%10s", scY) + "   |"
-                            + String.format("%10s", distance) + "   |"
-                            + String.format("%10s", trueAnomaly));
+
+            var report = String.format("%10s   |".repeat(7), earthX, earthY, scX, scY, distance, trueAnomaly, env.getTime());
+
+            System.out.println(report);
         });
     }
 }

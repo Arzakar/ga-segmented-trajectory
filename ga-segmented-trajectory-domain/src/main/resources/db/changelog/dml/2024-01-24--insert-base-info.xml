@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="2024-01-24--05-insert-base-info" author="Stepan_Klimashin">
+        <insert tableName="celestial_body">
+            <column name="name" value="SOLAR"/>
+            <column name="mass" value="1.9885E+30"/>
+        </insert>
+        
+        <insert tableName="orbit">
+            <column name="id" value="EARTH_ORBIT"/>
+            <column name="apocenter" value="1.521E+11"/>
+            <column name="pericenter" value="1.471E+11"/>
+            <column name="semi_major_axis" value="1.496E+11"/>
+            <column name="eccentricity" value="0.0167086"/>
+            <column name="inclination" value="0"/>
+            <column name="longitude_asc_node" value="0"/>
+            <column name="perihelion_argument" value="0"/>
+            <column name="attracting_body_id" value="SOLAR"/>
+        </insert>
+
+        <insert tableName="celestial_body">
+            <column name="name" value="EARTH"/>
+            <column name="mass" value="5.9722E+24"/>
+            <column name="orbit_id" value="EARTH_ORBIT"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

@@ -30,8 +30,6 @@ public class CelestialBody implements MassParticle {
 
     final double mass;
 
-    String textName;
-
     public CelestialBody move(long deltaTime) {
         var meanMotion = this.getMeanMotion();
         var eccentricity = this.orbit.getEccentricity();

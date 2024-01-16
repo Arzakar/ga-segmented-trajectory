@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="2024-01-26--01-add-result-table" author="Stepan Klimashin">
+        <createTable tableName="result">
+            <column name="id" type="UUID">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="result_pk"/>
+            </column>
+            <column name="initial_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="celestial_body_anomaly" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="spacecraft_pos_x" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="spacecraft_pos_y" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="spacecraft_spd_x" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="spacecraft_spd_y" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="spacecraft_mass" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="spacecraft_fuel_mass" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="first_interval" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="first_deviation" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="second_interval" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="second_deviation" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_complete" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duration" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE"
+                    defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="2024-01-26--02-add-initial-table" author="Stepan Klimashin">
+        <createTable tableName="initial">
+            <column name="id" type="UUID">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="initial_pk"/>
+            </column>
+            <column name="central_body_name" type="celestial_body_name_type">
+                <constraints nullable="false"/>
+            </column>
+            <column name="celestial_body_name" type="celestial_body_name_type">
+                <constraints nullable="false"/>
+            </column>
+            <column name="celestial_body_anomaly" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="spacecraft_pos_x" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="spacecraft_pos_y" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="spacecraft_spd_x" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="spacecraft_spd_y" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="spacecraft_fuel_consumption" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="spacecraft_mass" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="spacecraft_fuel_mass" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="spacecraft_thrust" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="interval_left_bound" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="interval_right_bound" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="interval_step" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deviation_left_bound" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deviation_right_bound" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deviation_step" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="required_distance" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_calculate_id" type="UUID">
+                <constraints foreignKeyName="initial_last_calculate_id_result_id_fk"
+                             referencedTableName="result"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE"
+                    defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE"
+                    defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="2024-01-26--03-add-foreign-key-into-result-table" author="Stepan Klimashin">
+        <addForeignKeyConstraint baseTableName="result"
+                                 baseColumnNames="initial_id"
+                                 constraintName="result_initial_id_initial_id_fk"
+                                 referencedTableName="initial"
+                                 referencedColumnNames="id"/>
+    </changeSet>
+
+</databaseChangeLog>

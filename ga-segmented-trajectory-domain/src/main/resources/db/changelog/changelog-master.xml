@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+
+    <!-- DDL -->
+    <include file="ddl/2024-01-14--add-base-tables.xml" relativeToChangelogFile="true"/>
+    <include file="ddl/2024-01-24--add-base-tables.xml" relativeToChangelogFile="true"/>
+    <include file="dml/2024-01-24--insert-base-info.xml" relativeToChangelogFile="true"/>
+    <include file="ddl/2024-01-26--add-calculate-tables.xml" relativeToChangelogFile="true"/>
+
+</databaseChangeLog>

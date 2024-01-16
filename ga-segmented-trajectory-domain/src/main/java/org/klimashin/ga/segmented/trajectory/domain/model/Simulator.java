@@ -55,20 +55,19 @@ public class Simulator {
             env.incrementTime(deltaTime);
         }
 
-        throw new NoOptimalSolutionException(String.format("Длительность перелёта превысила %d секунд", maxDuration));
+        throw new NoOptimalSolutionException(String.format("Длительность перелёта превысила %d секунд", maxDuration), maxDuration, env);
     }
 
     public List<Environment> detailedExecute(final int nodesCount) throws RuntimeException {
         var resultSet = new ArrayList<Environment>();
 
-        var seconds = 0L;
         var deltaTime = 100L;
 
         var iteration = 0;
         var compressionRate = 1;
 
-        while (seconds < maxDuration) {
-            executeStep(seconds, deltaTime);
+        while (env.getCurrentTime() < maxDuration) {
+            executeStep(env.getCurrentTime(), deltaTime);
 
             if (iteration % compressionRate == 0) {
                 resultSet.add(env.copy());
@@ -95,7 +94,7 @@ public class Simulator {
                 return resultSet;
             }
 
-            seconds += deltaTime;
+            env.incrementTime(deltaTime);
             iteration++;
         }
 
