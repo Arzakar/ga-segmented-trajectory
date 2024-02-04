@@ -43,6 +43,14 @@ public class Vector {
         return this;
     }
 
+    public double vectorMultiply(Vector vector) {
+        return this.x * vector.y - this.y * vector.x;
+    }
+
+    public double scalarMultiply(Vector vector) {
+        return this.x * vector.x + this.y * vector.y;
+    }
+
     public Vector divide(double ratio) {
         if (ratio == 0) {
             throw new ArithmeticException("Ошибка при делении вектора на 0");

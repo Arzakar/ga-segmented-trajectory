@@ -4,6 +4,7 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 docker-data/
+.jpb/
 
 ### STS ###
 .apt_generated

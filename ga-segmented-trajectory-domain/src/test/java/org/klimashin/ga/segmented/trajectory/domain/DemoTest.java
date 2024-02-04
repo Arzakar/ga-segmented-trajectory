@@ -29,7 +29,7 @@ class DemoTest {
                         .attractingBody(solar)
                         .apocenter(1.521E+11)
                         .pericenter(1.471E+11)
-                        .semiMajorAxis(1.496E+11)
+                        .semiMajorAxis(149597500000.00)
                         .eccentricity(0.0167086)
                         .inclination(0)
                         .longitudeAscNode(0)
@@ -42,14 +42,14 @@ class DemoTest {
         var spacecraft = Spacecraft.builder()
                 .mass(350)
                 .position(Point.of(earth.getPosition().getX() - Math.pow(10, 9), 0))
-                .speed(Vector.of(0, 29784))
-                .fuelMass(100)
-                .thrust(0.220)
-                .fuelConsumption(0.000010)
+                .speed(Vector.of(0, 29884))
+                .fuelMass(200)
+                .thrust(0.198 * 2)
+                .fuelConsumption(0.000024)
                 .build();
         var intervals = Map.of(
-                Duration.ofDays(15).toSeconds(), Math.toRadians(-40),
-                Duration.ofDays(105).toSeconds(), Math.toRadians(160)
+                Duration.ofDays(52).toSeconds(), Math.toRadians(-69),
+                Duration.ofDays(120).toSeconds(), Math.toRadians(50)
         );
         var commandProfile = new FvdCommandProfile(spacecraft, solar, intervals);
         var targetState = new ProximityOfTwoObjects(spacecraft, earth, Math.pow(10, 9));
@@ -68,10 +68,11 @@ class DemoTest {
         var environment = prepareEnvironment();
         var modeler = new Simulator(environment);
 
-        var result = modeler.execute(100L);
+        var result = modeler.execute(500L);
 
         System.out.println(result.getSpacecraft().getPosition());
-        System.out.println(Duration.ofSeconds(result.getCurrentTime()).toDays());
+        System.out.println(result.getResultOrbit());
+        System.out.println(result.getCurrentTime() / 86400d);
     }
 
     @Test
@@ -79,7 +80,7 @@ class DemoTest {
         var environment = prepareEnvironment();
         var modeler = new Simulator(environment);
 
-        var result = modeler.detailedExecute(500);
+        var result = modeler.detailedExecute(100);
 
         var numberFormat = "%.3e";
 
@@ -96,7 +97,8 @@ class DemoTest {
             var trueAnomaly = String.format("%.3f", earth.getOrbit().getTrueAnomaly());
             var distance = String.format(numberFormat, Points.distanceBetween(env.getCelestialBodies().get(CelestialBodyName.EARTH).getPosition(), env.getSpacecraft().getPosition()) / rate);
 
-            var report = String.format("%10s   |".repeat(7), earthX, earthY, scX, scY, distance, trueAnomaly, env.getTime());
+            var report = String.format("%10s   |".repeat(7), earthX, earthY, scX, scY, distance, trueAnomaly,
+                    Duration.ofSeconds(env.getTime()).toDays());
 
             System.out.println(report);
         });

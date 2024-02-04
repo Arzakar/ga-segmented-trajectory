@@ -10,6 +10,7 @@ import org.klimashin.ga.segmented.trajectory.domain.model.component.profile.Comm
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
 import java.util.Map;
@@ -27,6 +28,7 @@ public class Environment {
     Map<CelestialBodyName, CelestialBody> celestialBodies;
 
     Spacecraft spacecraft;
+    Orbit resultOrbit;
 
     CommandProfile commandProfile;
     TargetState targetState;
@@ -37,6 +39,11 @@ public class Environment {
 
     public void incrementTime(long deltaTime) {
         time += deltaTime;
+    }
+
+    public Environment injectResultOrbit(Orbit orbit) {
+        this.resultOrbit = orbit;
+        return this;
     }
 
     public Environment copy() {

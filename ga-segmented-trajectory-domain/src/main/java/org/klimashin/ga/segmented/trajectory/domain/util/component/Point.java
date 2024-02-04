@@ -30,4 +30,8 @@ public class Point {
     public Point copy() {
         return new Point(this.x, this.y);
     }
+
+    public Vector asRadiusVector() {
+        return new Vector(this.x, this.y);
+    }
 }

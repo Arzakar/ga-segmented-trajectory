@@ -55,7 +55,9 @@ public class FvdCommandProfile implements CommandProfile {
 
     @Override
     public Vector getThrustForce(double thrust, long currentTime) {
-        return this.getThrustForceDirection(currentTime).multiply(thrust);
+        return this.getThrustForceDirection(currentTime)
+                .multiply(thrust)
+                .multiply(currentTime > endIntervalsByDeviations.lastKey() ? 0 : 1);
     }
 
     private void validateIntervals(Map<Long, Double> endIntervalsByDeviations) {

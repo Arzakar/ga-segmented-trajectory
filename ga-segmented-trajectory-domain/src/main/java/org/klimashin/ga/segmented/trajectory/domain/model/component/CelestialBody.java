@@ -51,15 +51,9 @@ public class CelestialBody implements MassParticle {
     }
 
     public Vector getSpeed() {
-        if (Objects.nonNull(this.orbit)) {
-            var rate = Math.sqrt(G * orbit.getAttractingBody().getMass() / orbit.getFocalParameter());
-            var radialSpeed = rate * orbit.getEccentricity() * Math.sin(orbit.getTrueAnomaly());
-            var transversalSpeed = rate * (1 + orbit.getEccentricity() * Math.cos(orbit.getTrueAnomaly()));
-
-            return Vector.of(radialSpeed, transversalSpeed).rotate(orbit.getTrueAnomaly());
-        }
-
-        return Vector.of(0, 0);
+        return Optional.ofNullable(this.orbit)
+                .map(Orbit::getSpeed)
+                .orElseGet(() -> Vector.of(0, 0));
     }
 
     public double getMeanMotion() {

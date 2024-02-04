@@ -93,6 +93,10 @@ public class ResultEntity {
     @Column(name = "duration", nullable = false, updatable = false)
     Long duration;
 
+    @JdbcTypeCode(SqlTypes.DOUBLE)
+    @Column(name = "result_apocenter", updatable = false)
+    Double resultApocenter;
+
     @JdbcTypeCode(SqlTypes.TIMESTAMP_WITH_TIMEZONE)
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
