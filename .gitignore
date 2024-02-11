@@ -1,10 +1,14 @@
-HELP.md
 target/
-!.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 docker-data/
 .jpb/
+
+### Maven ###
+.mvn/
+HELP.md
+mvnw
+mvnw.cmd
 
 ### STS ###
 .apt_generated

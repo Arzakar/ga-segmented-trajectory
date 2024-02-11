@@ -1,7 +1,5 @@
 package org.klimashin.ga.segmented.trajectory.domain.model.component;
 
-import static org.klimashin.ga.segmented.trajectory.domain.model.common.Physics.G;
-
 import org.klimashin.ga.segmented.trajectory.domain.model.common.Orbits;
 import org.klimashin.ga.segmented.trajectory.domain.model.common.Physics;
 import org.klimashin.ga.segmented.trajectory.domain.model.method.FixedPointIterationMethod;
@@ -14,7 +12,6 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
 
-import java.util.Objects;
 import java.util.Optional;
 
 @Getter
