@@ -1,7 +1,6 @@
 server:
   port: 8080
 
-
 spring:
   application:
     name: ga-segmented-trajectory
