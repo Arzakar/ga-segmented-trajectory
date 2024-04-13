@@ -1,0 +1,18 @@
+server:
+  port: 8080
+  tomcat:
+    relaxed-query-chars: '|,{,},[,],^'
+
+spring:
+  application:
+    name: ga-segmented-trajectory
+
+  datasource:
+    url: jdbc:postgresql://host.docker.internal:5432/GA_SEGMENTED_TRAJECTORY_LOCAL_TEST
+    username: GA_SEGMENTED_TRAJECTORY_LOCAL_TEST
+    password: GA_SEGMENTED_TRAJECTORY_LOCAL_TEST
+    driver-class-name: org.postgresql.Driver
+
+  liquibase:
+    enabled: true
+    change-log: classpath:/db/changelog/changelog-master.xml

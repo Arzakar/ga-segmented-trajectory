@@ -1,5 +1,6 @@
 package org.klimashin.ga.segmented.trajectory.domain;
 
+import org.klimashin.ga.segmented.trajectory.domain.api.dto.SimParametersCreationRequestDto;
 import org.klimashin.ga.segmented.trajectory.domain.model.Environment;
 import org.klimashin.ga.segmented.trajectory.domain.model.Simulator;
 import org.klimashin.ga.segmented.trajectory.domain.model.component.CelestialBody;
@@ -12,9 +13,13 @@ import org.klimashin.ga.segmented.trajectory.domain.util.common.Points;
 import org.klimashin.ga.segmented.trajectory.domain.util.component.Point;
 import org.klimashin.ga.segmented.trajectory.domain.util.component.Vector;
 
+import lombok.SneakyThrows;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 
 class DemoTest {
@@ -102,5 +107,26 @@ class DemoTest {
 
             System.out.println(report);
         });
+    }
+
+    @Test
+    @SneakyThrows
+    void mapperTest() {
+        var objectMapper = new ObjectMapper();
+        var value = SimParametersCreationRequestDto.builder()
+                .centralBody(CelestialBodyName.SOLAR)
+                .celestialBodiesByAnomalies(new HashMap(Map.of(CelestialBodyName.EARTH, 0d)))
+                .spacecraftPos(new Double[]{146100393440d, 0d})
+                .spacecraftSpd(new Double[]{0d, 29818.40768009452d})
+                .spacecraftMass(1913.9674640888982)
+                .spacecraftFuelMass(1009.0621754050131)
+                .engineFuelConsumption(0.000043174462795)
+                .engineThrust(0.8287589074447651)
+                .controlVariations(new HashMap(Map.of(
+                        1, new Number[][]{{10, 30},{14.918176034672541, 80.88544644854156}},
+                        2, new Number[][]{{70, 170},{113.86908165547607, 179.83635206934508}}
+                ))).build();
+
+        System.out.println(objectMapper.writeValueAsString(value));
     }
 }

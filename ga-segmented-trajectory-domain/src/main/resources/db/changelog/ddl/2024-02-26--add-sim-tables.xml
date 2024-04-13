@@ -83,7 +83,8 @@
             <column name="e2e_duration" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column name="apocenter_after_ga" type="DOUBLE"/>
+            <column name="apocenter_after_left_ga" type="DOUBLE"/>
+            <column name="apocenter_after_right_ga" type="DOUBLE"/>
             <column name="created_at" type="TIMESTAMP WITH TIME ZONE"
                     defaultValueComputed="now()">
                 <constraints nullable="false"/>

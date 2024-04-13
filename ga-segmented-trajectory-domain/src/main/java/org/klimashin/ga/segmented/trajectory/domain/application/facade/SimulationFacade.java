@@ -1,14 +1,19 @@
 package org.klimashin.ga.segmented.trajectory.domain.application.facade;
 
-import static java.lang.System.gc;
-
 import org.klimashin.ga.segmented.trajectory.domain.api.dto.InitialCreationRequestDto;
+import org.klimashin.ga.segmented.trajectory.domain.api.dto.SimParametersCreationRequestDto;
+import org.klimashin.ga.segmented.trajectory.domain.application.component.data.ApplicableSimResult;
 import org.klimashin.ga.segmented.trajectory.domain.application.component.entity.InitialEntity;
 import org.klimashin.ga.segmented.trajectory.domain.application.component.entity.ResultEntity;
+import org.klimashin.ga.segmented.trajectory.domain.application.component.entity.SimParametersEntity;
+import org.klimashin.ga.segmented.trajectory.domain.application.component.entity.SimResultEntity;
 import org.klimashin.ga.segmented.trajectory.domain.application.mapper.InitialMapper;
+import org.klimashin.ga.segmented.trajectory.domain.application.mapper.SimParametersMapper;
 import org.klimashin.ga.segmented.trajectory.domain.application.repository.CelestialBodyRepository;
 import org.klimashin.ga.segmented.trajectory.domain.application.repository.InitialRepository;
 import org.klimashin.ga.segmented.trajectory.domain.application.repository.ResultRepository;
+import org.klimashin.ga.segmented.trajectory.domain.application.repository.SimParametersRepository;
+import org.klimashin.ga.segmented.trajectory.domain.application.repository.SimResultRepository;
 import org.klimashin.ga.segmented.trajectory.domain.model.Environment;
 import org.klimashin.ga.segmented.trajectory.domain.model.Simulator;
 import org.klimashin.ga.segmented.trajectory.domain.model.component.CelestialBody;
@@ -26,16 +31,24 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.lang3.ArrayUtils;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
@@ -44,12 +57,16 @@ import java.util.stream.LongStream;
 @Component
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class SimulatorFacade {
+public class SimulationFacade {
 
     CelestialBodyRepository celestialBodyRepository;
     InitialRepository initialRepository;
     InitialMapper initialMapper;
     ResultRepository resultRepository;
+
+    SimParametersMapper simParametersMapper;
+    SimParametersRepository simParametersRepository;
+    SimResultRepository simResultRepository;
 
     TransactionTemplate transactionTemplate;
 
@@ -141,6 +158,183 @@ public class SimulatorFacade {
         });
 
     }
+
+
+    @Async
+    public void createSimParametersAndStartCalculation(SimParametersCreationRequestDto creationRequest) {
+        var simParameters = simParametersRepository.saveAndFlush(simParametersMapper.creationRequestDtoToEntity(creationRequest)
+                .setCentralBody(celestialBodyRepository.findById(creationRequest.getCentralBody()).orElseThrow()));
+
+        var rawComponents = new HashMap<Integer, Number[]>();
+        for (int i = 0; i < simParameters.getControlVariations().size(); i++) {
+            var duration = simParameters.getControlVariations().get(i)[0];
+            var deviation = simParameters.getControlVariations().get(i)[1];
+
+            rawComponents.put(i * 2, duration);
+            rawComponents.put(i * 2 + 1, deviation);
+        }
+
+        new DynamicCyclesIterator(rawComponents).bulkExecute(numbers -> {
+            var environment = buildEnvironment(simParameters, numbers);
+
+            var resultState = new Simulator(environment).execute(100);
+            var simResult = buildSimResult(resultState, simParameters, numbers);
+
+            transactionTemplate.executeWithoutResult(status -> {
+                var savedSimResult = simResultRepository.saveAndFlush(simResult);
+                simParametersRepository.updateLastCalculate(simParameters.getId(), savedSimResult);
+            });
+        });
+
+        simParametersRepository.updateLastCalculate(simParameters.getId(), null);
+    }
+
+    @Transactional
+    public void downloadApplicableSimResults() {
+        var simResultCompositeKey = new Function<ApplicableSimResult, List<Object>>() {
+            public List<Object> apply(ApplicableSimResult applicableSimResult) {
+                return Arrays.asList(
+                        applicableSimResult.getSimParametersId(),
+                        applicableSimResult.getInterval1(),
+                        applicableSimResult.getDeviation1(),
+                        applicableSimResult.getDeviation2(),
+                        applicableSimResult.getRightResultApocenter(),
+                        applicableSimResult.getLeftResultApocenter()
+                );
+            }
+        };
+
+        var results = simResultRepository.getApplicableSimResults()
+                .map(result -> {
+                    var simParameters = result.getSimParameters();
+                    return ApplicableSimResult.builder()
+                            .simParametersId(simParameters.getId())
+                            .simResultId(result.getId())
+                            .scStartPosX(simParameters.getSpacecraftPos()[0])
+                            .scStartPosY(simParameters.getSpacecraftPos()[1])
+                            .scStartSpdX(simParameters.getSpacecraftSpd()[0])
+                            .scStartSpdY(simParameters.getSpacecraftSpd()[1])
+                            .scStartMass(simParameters.getSpacecraftMass())
+                            .scStartFuelMass(simParameters.getSpacecraftFuelMass())
+                            .engConsumption(simParameters.getEngineFuelConsumption())
+                            .engThrust(simParameters.getEngineThrust())
+                            .scResPosX(result.getSpacecraftPos()[0])
+                            .scResPosY(result.getSpacecraftPos()[1])
+                            .scResSpdX(result.getSpacecraftSpd()[0])
+                            .scResSpdY(result.getSpacecraftSpd()[1])
+                            .scResMass(result.getSpacecraftMass())
+                            .scResFuelMass(result.getSpacecraftFuelMass())
+                            .interval1(result.getControlLaw().get(0)[0].doubleValue())
+                            .deviation1(result.getControlLaw().get(0)[1].doubleValue())
+                            .interval2(result.getControlLaw().get(1)[0].doubleValue())
+                            .deviation2(result.getControlLaw().get(1)[1].doubleValue())
+                            .e2eDuration(result.getEarthToEarthDuration())
+                            .leftResultApocenter(result.getApocenterAfterLeftGa())
+                            .rightResultApocenter(result.getApocenterAfterRightGa())
+                            .build();
+                })
+                .collect(Collectors.groupingBy(simResultCompositeKey, Collectors.toList()));
+                        //Collectors.minBy(Comparator.comparingDouble(ApplicableSimResult::getInterval2))));
+    }
+
+    private Environment buildEnvironment(SimParametersEntity simParameters, Number[] numbers) {
+        var centralBody = CelestialBody.builder()
+                .name(simParameters.getCentralBody().getName())
+                .mass(simParameters.getCentralBody().getMass())
+                .orbit(null)
+                .build();
+
+        var celestialBodies = simParameters.getCelestialBodiesByAnomalies().entrySet().stream()
+                .map(entry -> {
+                    var celestialBodyEntity = celestialBodyRepository.findById(entry.getKey()).orElseThrow();
+                    var orbitEntity = celestialBodyEntity.getOrbit();
+
+                    var orbit = Orbit.builder()
+                            .attractingBody(centralBody)
+                            .apocenter(orbitEntity.getApocenter())
+                            .pericenter(orbitEntity.getPericenter())
+                            .semiMajorAxis(orbitEntity.getSemiMajorAxis())
+                            .eccentricity(orbitEntity.getEccentricity())
+                            .inclination(orbitEntity.getInclination())
+                            .longitudeAscNode(orbitEntity.getLongitudeAscNode())
+                            .perihelionArgument(orbitEntity.getPerihelionArgument())
+                            .trueAnomaly(entry.getValue())
+                            .zeroEpoch(0L)
+                            .build();
+
+                    return CelestialBody.builder()
+                            .name(celestialBodyEntity.getName())
+                            .mass(celestialBodyEntity.getMass())
+                            .orbit(orbit)
+                            .build();
+                })
+                .collect(Collectors.toMap(CelestialBody::getName, Function.identity()));
+
+        var spacecraft = Spacecraft.builder()
+                .position(Point.of(ArrayUtils.toPrimitive(simParameters.getSpacecraftPos())))
+                .speed(Vector.of(ArrayUtils.toPrimitive(simParameters.getSpacecraftSpd())))
+                .fuelConsumption(simParameters.getEngineFuelConsumption())
+                .mass(simParameters.getSpacecraftMass())
+                .fuelMass(simParameters.getSpacecraftFuelMass())
+                .thrust(simParameters.getEngineThrust())
+                .build();
+
+        var endIntervalsByDeviations = new TreeMap<Long, Double>(Long::compareTo);
+        for (int idx = 0; idx < numbers.length; idx += 2) {
+            var interval = numbers[idx].longValue() + endIntervalsByDeviations.keySet().stream().reduce(0L, Long::sum);
+            var deviation = numbers[idx + 1].doubleValue();
+
+            endIntervalsByDeviations.put(Duration.ofDays(interval).toSeconds(), Math.toRadians(deviation));
+        }
+
+        var commandProfile = FvdCommandProfile.builder()
+                .startVectorObject(spacecraft)
+                .endVectorObject(centralBody)
+                .endIntervalsByDeviations(endIntervalsByDeviations)
+                .build();
+
+        var targetState = ProximityOfTwoObjects.builder()
+                .firstParticle(spacecraft)
+                .secondParticle(celestialBodies.get(CelestialBodyName.EARTH))
+                .requiredDistance(1_000_000_000)
+                .build();
+
+        return Environment.builder()
+                .centralBody(centralBody)
+                .celestialBodies(celestialBodies)
+                .spacecraft(spacecraft)
+                .commandProfile(commandProfile)
+                .targetState(targetState)
+                .build();
+    }
+
+    private SimResultEntity buildSimResult(Environment resultState, SimParametersEntity simParameters, Number[] numbers) {
+        var celestialBodiesByAnomalies = resultState.getCelestialBodies().entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getOrbit().getTrueAnomaly()));
+        var spacecraft = resultState.getSpacecraft();
+
+        var controlLaw = new TreeMap<Integer, Number[]>(Integer::compareTo);
+        for (int idx = 0; idx < numbers.length; idx += 2) {
+            var interval = numbers[idx];
+            var deviation = numbers[idx + 1];
+
+            controlLaw.put(idx / 2, new Number[]{interval, deviation});
+        }
+
+        return new SimResultEntity()
+                .setSimParameters(simParameters)
+                .setCelestialBodiesByAnomalies(celestialBodiesByAnomalies)
+                .setSpacecraftPos(ArrayUtils.toObject(spacecraft.getPosition().toArray()))
+                .setSpacecraftSpd(ArrayUtils.toObject(spacecraft.getSpeed().toArray()))
+                .setSpacecraftMass(spacecraft.getMass())
+                .setSpacecraftFuelMass(spacecraft.getFuelMass())
+                .setControlLaw(controlLaw)
+                .setIsMeetingEarth(resultState.getTargetState().isAchieved())
+                .setEarthToEarthDuration(resultState.getTime())
+                .setApocenterAfterLeftGa(Optional.ofNullable(resultState.getResultLeftOrbit()).map(Orbit::getApocenter).orElse(null))
+                .setApocenterAfterRightGa(Optional.ofNullable(resultState.getResultRightOrbit()).map(Orbit::getApocenter).orElse(null));
+    }
+
 
     protected Environment buildInitialEnvironment(InitialEntity initial, Number[] numbers) {
         var centralBody = buildCentralBody(initial);

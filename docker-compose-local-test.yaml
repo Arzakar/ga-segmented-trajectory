@@ -1,0 +1,12 @@
+services:
+  ga-segmented-trajectory-postgres-test-data:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: GA_SEGMENTED_TRAJECTORY_LOCAL_TEST
+      POSTGRES_PASSWORD: GA_SEGMENTED_TRAJECTORY_LOCAL_TEST
+      POSTGRES_DB: GA_SEGMENTED_TRAJECTORY_LOCAL_TEST
+      PGDATA: '/var/lib/postgresql/data/docker-data/ga-segmented-trajectory-local-test'
+    ports:
+      - 5433:5432
+    volumes:
+      - .:/var/lib/postgresql/data

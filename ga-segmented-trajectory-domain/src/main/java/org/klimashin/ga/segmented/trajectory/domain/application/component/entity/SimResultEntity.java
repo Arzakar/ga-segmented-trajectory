@@ -76,8 +76,12 @@ public class SimResultEntity {
     Long earthToEarthDuration;
 
     @JdbcTypeCode(SqlTypes.DOUBLE)
-    @Column(name = "apocenter_after_ga", updatable = false)
-    Double apocenterAfterGa;
+    @Column(name = "apocenter_after_left_ga", updatable = false)
+    Double apocenterAfterLeftGa;
+
+    @JdbcTypeCode(SqlTypes.DOUBLE)
+    @Column(name = "apocenter_after_right_ga", updatable = false)
+    Double apocenterAfterRightGa;
 
     @JdbcTypeCode(SqlTypes.TIMESTAMP_WITH_TIMEZONE)
     @CreationTimestamp

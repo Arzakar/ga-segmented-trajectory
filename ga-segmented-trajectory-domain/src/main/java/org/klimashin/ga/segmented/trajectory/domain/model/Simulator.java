@@ -55,16 +55,21 @@ public class Simulator {
             executeStep(env.getCurrentTime(), deltaTime);
 
             if (targetState.isAchieved()) {
-                var mostHighlyOrbit = calculateGravityAssistManeuver();
+                var orbitsAfterGa = calculateGravityAssistManeuver();
+                var mostHighlyOrbit = orbitsAfterGa[0].getApocenter() >= orbitsAfterGa[1].getApocenter()
+                        ? orbitsAfterGa[0]
+                        : orbitsAfterGa[1];
 
-                return env.injectResultOrbit(mostHighlyOrbit);
+                env.injectResultOrbit(mostHighlyOrbit);
+                env.injectResultOrbits(orbitsAfterGa[0], orbitsAfterGa[1]);
+
+                return env;
             }
 
             env.incrementTime(deltaTime);
         }
 
         return env;
-        //throw new NoOptimalSolutionException(String.format("Длительность перелёта превысила %d секунд", maxDuration), maxDuration, env);
     }
 
     public List<Environment> detailedExecute(final int nodesCount) throws RuntimeException {
@@ -139,7 +144,7 @@ public class Simulator {
         }
     }
 
-    protected Orbit calculateGravityAssistManeuver() {
+    protected Orbit[] calculateGravityAssistManeuver() {
         var earth = celestialBodies.get(CelestialBodyName.EARTH);
 
         var earthIncomingPos = earth.getPosition().copy();
@@ -198,8 +203,6 @@ public class Simulator {
         var spacecraftLeftOutgoingSpd = spacecraftIncomingSpd.copy().rotate(-2 * gamma).add(earthOutgoingSpd);
         var leftResultOrbit = Orbit.buildByObservation(spacecraftLeftOutgoingPos.get(), spacecraftLeftOutgoingSpd, centralBody);
 
-        return rightResultOrbit.getApocenter() > leftResultOrbit.getApocenter()
-                ? rightResultOrbit
-                : leftResultOrbit;
+        return new Orbit[]{leftResultOrbit, rightResultOrbit};
     }
 }

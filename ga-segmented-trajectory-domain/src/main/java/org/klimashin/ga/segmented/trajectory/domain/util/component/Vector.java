@@ -21,6 +21,14 @@ public class Vector {
         return new Vector(x, y);
     }
 
+    public static Vector of(double[] coords) {
+        if (coords.length != 2) {
+            throw new IllegalArgumentException("Массив координат должен содержать строго два элемента");
+        }
+
+        return new Vector(coords[0], coords[1]);
+    }
+
     public static Vector zero() {
         return new Vector(0, 0);
     }
@@ -81,5 +89,9 @@ public class Vector {
 
     public Vector copy() {
         return new Vector(this.x, this.y);
+    }
+
+    public double[] toArray() {
+        return new double[]{this.x, this.y};
     }
 }

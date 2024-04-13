@@ -13,6 +13,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
+import org.aspectj.weaver.ast.Or;
+
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -29,6 +31,8 @@ public class Environment {
 
     Spacecraft spacecraft;
     Orbit resultOrbit;
+    Orbit resultLeftOrbit;
+    Orbit resultRightOrbit;
 
     CommandProfile commandProfile;
     TargetState targetState;
@@ -43,6 +47,12 @@ public class Environment {
 
     public Environment injectResultOrbit(Orbit orbit) {
         this.resultOrbit = orbit;
+        return this;
+    }
+
+    public Environment injectResultOrbits(Orbit leftOrbit, Orbit rightOrbit) {
+        this.resultLeftOrbit = leftOrbit;
+        this.resultRightOrbit = rightOrbit;
         return this;
     }
 
