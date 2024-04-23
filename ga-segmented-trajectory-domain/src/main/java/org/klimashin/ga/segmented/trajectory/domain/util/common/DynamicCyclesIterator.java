@@ -16,13 +16,50 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
+import java.util.stream.IntStream;
 
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class DynamicCyclesIterator {
 
+    /**
+     * Список компонентов для итерирования. Ключ карты говорит об уровне слоя в общей схеме циклов, значение карты содержит
+     * класс {@link Component} для хранения элементов которые будут использоваться внутри цикла и вспомогательных ссылок.
+     * <p/>
+     * Структура вида:
+     * <pre>
+     *     {
+     *         0: {
+     *             "elements": [1, 2, 3, 4, 5],
+     *             "cellRef": 0
+     *         },
+     *         1: {
+     *             "previousComponent": {
+     *                 "elements": [1, 2, 3, 4, 5],
+     *                 "cellRef": 0
+     *             }
+     *             "elements": [5, 10, 15, 20],
+     *             "cellRef": 0
+     *         }
+     *     }
+     * </pre>
+     * будет аналогична вложенному циклу:
+     * <pre>
+     *     for (int i = 1; i <= 5; i++) {
+     *         for (int j = 5; j <= 20; j += 5) {
+     *             ...
+     *         }
+     *     }
+     * </pre>
+     */
     SortedMap<Integer, Component> components = new TreeMap<>(Integer::compareTo);
 
+    /**
+     * Конструктор, для формирования компонентов для итерирования. Самый верхний компонент не имеет ссылок (например,
+     * на последний элемент), чтобы не создавать зацикливание.
+     *
+     * @param rawComponents массивы для выстраивания структуры циклов
+     */
     public DynamicCyclesIterator(Map<Integer, Number[]> rawComponents) {
         for (int idx = 0; idx < rawComponents.size(); idx++) {
             var componentAsList = rawComponents.get(idx);
@@ -35,6 +72,14 @@ public class DynamicCyclesIterator {
         }
     }
 
+    /**
+     * Конструктор, для формирования компонентов для итерирования. Самый верхний компонент не имеет ссылок (например,
+     * на последний элемент), чтобы не создавать зацикливание. В результате получаем итератор, который начинает отсчёт с
+     * указанных элементов на каждом уровне
+     *
+     * @param rawComponents массивы для выстраивания структуры циклов
+     * @param cellRefs индексы элементов, с которых нужно начать итерирования на каждом уровне
+     */
     public DynamicCyclesIterator(Map<Integer, Number[]> rawComponents, Map<Integer, Integer> cellRefs) {
         for (int idx = 0; idx < rawComponents.size(); idx++) {
             var componentAsList = rawComponents.get(idx);
@@ -50,7 +95,7 @@ public class DynamicCyclesIterator {
     public void execute(Consumer<Number[]> functionConsumer) {
         var lastComponent = components.lastEntry().getValue();
 
-        while (true) {
+        do {
             var elementsArray = components.entrySet().stream()
                     .sorted(Map.Entry.comparingByKey())
                     .map(entry -> {
@@ -60,8 +105,34 @@ public class DynamicCyclesIterator {
 
             functionConsumer.accept(elementsArray);
 
-            var state = lastComponent.iterate();
-            if (state.equals(LAST_ITERATION)) break;
+        } while(lastComponent.iterate().equals(INTERMEDIATE_ITERATION));
+    }
+
+    public void bulkExecute(int permits, Consumer<Number[]> functionConsumer) {
+        var sumIterations = (int) components.values().stream()
+                .map(Component::getElements)
+                .map(numbers -> numbers.length)
+                .reduce(1, (a, b) -> a * b);
+
+        try (var scope = new ConstrainedScope<>(permits)) {
+            IntStream.range(0, sumIterations).forEachOrdered(_ -> {
+                var elementsArray = components.entrySet().stream()
+                        .sorted(Map.Entry.comparingByKey())
+                        .map(entry -> entry.getValue().getCurrentCellRefElement())
+                        .toArray(Number[]::new);
+
+                scope.fork(() -> {
+                    functionConsumer.accept(elementsArray);
+                    return null;
+                });
+
+                components.lastEntry().getValue().iterate();
+            });
+
+            scope.join().throwIfFailed();
+
+        } catch (ExecutionException | InterruptedException exception) {
+            throw new RuntimeException(exception);
         }
     }
 
@@ -78,7 +149,7 @@ public class DynamicCyclesIterator {
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
             var listOfElementsArray = new ArrayList<Number[]>();
 
-            while (true) {
+            while (counter < sumIterations) {
                 for (int i = 0; i < threadCount; i++) {
                     var elementsArray = components.entrySet().stream()
                             .sorted(Map.Entry.comparingByKey())
@@ -98,12 +169,7 @@ public class DynamicCyclesIterator {
                 CompletableFuture.allOf(futureList).get();
 
                 counter += threadCount;
-
-                if (counter >= sumIterations) {
-                    break;
-                } else {
-                    listOfElementsArray.clear();
-                }
+                listOfElementsArray.clear();
             }
 
         } catch (ExecutionException | InterruptedException e) {
@@ -117,6 +183,13 @@ public class DynamicCyclesIterator {
 
     @FieldDefaults(level = AccessLevel.PRIVATE)
     protected static class Component {
+
+        final Component previousComponent;
+
+        @Getter(value = AccessLevel.PROTECTED)
+        final Number[] elements;
+
+        int cellRef;
 
         public Component(Number[] elements) {
             this.previousComponent = null;
@@ -141,13 +214,6 @@ public class DynamicCyclesIterator {
             this.cellRef = cellRef;
             this.elements = elements;
         }
-
-        final Component previousComponent;
-
-        @Getter(value = AccessLevel.PROTECTED)
-        final Number[] elements;
-
-        int cellRef;
 
         public Number getCurrentCellRefElement() {
             return this.elements[cellRef];

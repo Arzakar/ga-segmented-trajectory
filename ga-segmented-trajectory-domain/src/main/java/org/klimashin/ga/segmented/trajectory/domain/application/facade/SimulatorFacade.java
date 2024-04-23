@@ -3,7 +3,10 @@ package org.klimashin.ga.segmented.trajectory.domain.application.facade;
 import static org.klimashin.ga.segmented.trajectory.domain.model.common.Physics.G;
 
 import org.klimashin.ga.segmented.trajectory.domain.api.dto.CelestialBodyV1Dto;
+import org.klimashin.ga.segmented.trajectory.domain.api.dto.EngineV1Dto;
 import org.klimashin.ga.segmented.trajectory.domain.api.dto.SimParametersCreationRequestV1Dto;
+import org.klimashin.ga.segmented.trajectory.domain.api.dto.SimParametersRandomCreationRequestV1Dto;
+import org.klimashin.ga.segmented.trajectory.domain.api.dto.SpacecraftV1Dto;
 import org.klimashin.ga.segmented.trajectory.domain.application.component.data.ApplicableSimResult;
 import org.klimashin.ga.segmented.trajectory.domain.application.component.entity.SimParametersEntity;
 import org.klimashin.ga.segmented.trajectory.domain.application.component.entity.SimResultEntity;
@@ -21,6 +24,7 @@ import org.klimashin.ga.segmented.trajectory.domain.model.component.condition.Ta
 import org.klimashin.ga.segmented.trajectory.domain.model.component.profile.CommandProfile;
 import org.klimashin.ga.segmented.trajectory.domain.model.component.profile.FvdCommandProfile;
 import org.klimashin.ga.segmented.trajectory.domain.util.common.DynamicCyclesIterator;
+import org.klimashin.ga.segmented.trajectory.domain.util.common.PairRandom;
 import org.klimashin.ga.segmented.trajectory.domain.util.component.LongSegment;
 import org.klimashin.ga.segmented.trajectory.domain.util.component.Pair;
 import org.klimashin.ga.segmented.trajectory.domain.util.component.Point;
@@ -32,15 +36,16 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.ArrayUtils;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -58,7 +63,6 @@ public class SimulatorFacade {
 
     TransactionTemplate transactionTemplate;
 
-    @Async
     public void createSimParametersAndStartCalculation(SimParametersCreationRequestV1Dto creationRequest) {
         var centralBody = celestialBodyRepository.findById(creationRequest.getCentralBodyName())
                 .orElseThrow();
@@ -90,7 +94,7 @@ public class SimulatorFacade {
             rawComponents.put(i * 2 + 1, deviation);
         }
 
-        new DynamicCyclesIterator(rawComponents).bulkExecute(numbers -> {
+        new DynamicCyclesIterator(rawComponents).bulkExecute(12, numbers -> {
             final var initState = prepareInitState(simParameters);
             final var commandProfile = prepareCommandProfile(initState, numbers);
             final var targetState = prepareTargetState(initState);
@@ -106,13 +110,81 @@ public class SimulatorFacade {
                     .setSimParameters(simParameters)
                     .setIsMeetingEarth(targetState.isAchieved());
 
-            transactionTemplate.executeWithoutResult(status -> {
+            if (targetState.isAchieved()) {
+                var earth = resultState.getCelestialBodies().get(CelestialBodyName.EARTH);
+                var orbitsAfterGa = calculateGravityAssistManeuverResult(resultState.getCentralBody(), earth, resultState.getSpacecraft());
+
+                if (Optional.ofNullable(orbitsAfterGa).isPresent()) {
+                    simResult.setApocenterAfterLeftGa(orbitsAfterGa.getLeft().getApocenter());
+                    simResult.setApocenterAfterRightGa(orbitsAfterGa.getRight().getApocenter());
+                }
+            }
+
+            transactionTemplate.executeWithoutResult(_ -> {
                 var savedSimResult = simResultRepository.saveAndFlush(simResult);
                 simParametersRepository.updateLastCalculate(simParameters.getId(), savedSimResult);
             });
         });
 
         simParametersRepository.updateLastCalculate(simParameters.getId(), null);
+    }
+
+    public void runRandomCalculations(SimParametersRandomCreationRequestV1Dto randomCreationRequest) {
+        var random = new PairRandom();
+
+        var spacecraft = randomCreationRequest.getSpacecraft();
+        var engine = randomCreationRequest.getEngine();
+        var controlMinVariations = randomCreationRequest.getControlMinVariations();
+        var controlMaxVariations = randomCreationRequest.getControlMaxVariations();
+
+        while (true) {
+            var scMass = random.nextDouble(spacecraft.getMass());
+            var controlVariations = controlMinVariations.keySet().stream()
+                    .collect(Collectors.toMap(
+                            Function.identity(),
+                            key -> {
+                                var minDurations = controlMinVariations.get(key)[0];
+                                var maxDurations = controlMaxVariations.get(key)[0];
+                                var durations = new Number[minDurations.length];
+                                for (int i = 0; i < minDurations.length; i++) {
+                                    var minDuration = Integer.valueOf(minDurations[i].intValue());
+                                    var maxDuration = Integer.valueOf(maxDurations[i].intValue());
+                                    durations[i] = random.nextInt(Pair.of(minDuration, maxDuration));
+                                }
+
+                                var minDeviations = controlMinVariations.get(key)[1];
+                                var maxDeviations = controlMaxVariations.get(key)[1];
+                                var deviations = new Number[minDeviations.length];
+                                for (int i = 0; i < minDeviations.length; i++) {
+                                    var minDeviation = Double.valueOf(minDeviations[i].doubleValue());
+                                    var maxDeviation = Double.valueOf(maxDeviations[i].doubleValue());
+                                    deviations[i] = random.nextDouble(Pair.of(minDeviation, maxDeviation));
+                                }
+
+                                return new Number[][]{durations, deviations};
+                            }
+                    ));
+
+            var creationRequest = SimParametersCreationRequestV1Dto.builder()
+                    .centralBodyName(randomCreationRequest.getCentralBodyName())
+                    .celestialBodies(randomCreationRequest.getCelestialBodies())
+                    .spacecraft(SpacecraftV1Dto.builder()
+                            .posX(random.nextDouble(spacecraft.getPosX()))
+                            .posY(random.nextDouble(spacecraft.getPosY()))
+                            .spdX(random.nextDouble(spacecraft.getSpdX()))
+                            .spdY(random.nextDouble(spacecraft.getSpdY()))
+                            .mass(scMass)
+                            .fuelMass(scMass * random.nextDouble(spacecraft.getFuelMassPercent()))
+                            .build())
+                    .engine(EngineV1Dto.builder()
+                            .fuelConsumption(random.nextDouble(engine.getFuelConsumption()))
+                            .thrust(random.nextDouble(engine.getThrust()))
+                            .build())
+                    .controlVariations(controlVariations)
+                    .build();
+
+            this.createSimParametersAndStartCalculation(creationRequest);
+        }
     }
 
     @Transactional
@@ -219,8 +291,11 @@ public class SimulatorFacade {
         var intervalsByDeviations = new TreeMap<LongSegment, Double>(LongSegment::compareByLeftTo);
         for (int idx = 0; idx < numbers.length; idx += 2) {
             var segment = idx == 0
-                    ? LongSegment.of(0, numbers[idx].longValue())
-                    : LongSegment.of(numbers[idx-2].longValue(), numbers[idx].longValue());
+                    ? LongSegment.of(0, Duration.ofDays(numbers[idx].longValue()).toSeconds())
+                    : LongSegment.of(
+                            Duration.ofDays(numbers[idx-2].longValue()).toSeconds(),
+                            Duration.ofDays(numbers[idx-2].longValue() + numbers[idx].longValue()).toSeconds()
+                    );
             var deviation = numbers[idx + 1].doubleValue();
 
             intervalsByDeviations.put(segment, Math.toRadians(deviation));
@@ -257,9 +332,6 @@ public class SimulatorFacade {
             controlLaw.put(idx / 2, new Number[]{interval, deviation});
         }
 
-        var earth = resultState.getCelestialBodies().get(CelestialBodyName.EARTH);
-        var orbitsAfterGa = calculateGravityAssistManeuverResult(resultState.getCentralBody(), earth, spacecraft);
-
         return new SimResultEntity()
                 .setCelestialBodiesByAnomalies(celestialBodiesByAnomalies)
                 .setSpacecraftPos(ArrayUtils.toObject(spacecraft.getPosition().toArray()))
@@ -267,9 +339,7 @@ public class SimulatorFacade {
                 .setSpacecraftMass(spacecraft.getMass())
                 .setSpacecraftFuelMass(spacecraft.getFuelMass())
                 .setControlLaw(controlLaw)
-                .setEarthToEarthDuration(resultState.getTime())
-                .setApocenterAfterLeftGa(orbitsAfterGa.getLeft().getApocenter())
-                .setApocenterAfterRightGa(orbitsAfterGa.getRight().getApocenter());
+                .setEarthToEarthDuration(resultState.getTime());
     }
 
     protected Pair<Orbit, Orbit> calculateGravityAssistManeuverResult(CelestialBody centralBody, CelestialBody celestialBody, Spacecraft spacecraft) {

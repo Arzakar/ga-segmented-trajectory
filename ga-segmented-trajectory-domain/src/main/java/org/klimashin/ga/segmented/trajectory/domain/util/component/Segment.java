@@ -2,11 +2,15 @@ package org.klimashin.ga.segmented.trajectory.domain.util.component;
 
 public class Segment<TYPE extends Comparable<TYPE>> extends Pair<TYPE, TYPE> {
 
+    public static <TYPE extends Comparable<TYPE>> Segment<TYPE> of(TYPE left, TYPE right) {
+        return new Segment<>(left, right);
+    }
+
     public Segment(TYPE left, TYPE right) {
         super(left, right);
 
         if (left.compareTo(right) >= 0) {
-            throw new IllegalArgumentException("left value can't be more or equals right value");
+            throw new IllegalArgumentException(String.format("left value %s can't be more or equals right value %s", left, right));
         }
     }
 

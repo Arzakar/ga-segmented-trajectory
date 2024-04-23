@@ -1,6 +1,8 @@
 package org.klimashin.ga.segmented.trajectory.domain.api.dto;
 
 import org.klimashin.ga.segmented.trajectory.domain.model.component.CelestialBodyName;
+import org.klimashin.ga.segmented.trajectory.domain.util.component.Pair;
+import org.klimashin.ga.segmented.trajectory.domain.util.component.Segment;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -38,41 +40,17 @@ public class SimParametersRandomCreationRequestV1Dto {
     @AllArgsConstructor
     public static class SpacecraftRandomCreationRequestV1Dto {
 
-        @Schema(example = "146100393440")
-        Double posXMin;
+        Pair<Double, Double> posX;
 
-        @Schema(example = "146100393440")
-        Double posXMax;
+        Pair<Double, Double> posY;
 
-        @Schema(example = "0")
-        Double posYMin;
+        Pair<Double, Double> spdX;
 
-        @Schema(example = "0")
-        Double posYMax;
+        Pair<Double, Double> spdY;
 
-        @Schema(example = "0.0")
-        Double spdXMin;
+        Pair<Double, Double> mass;
 
-        @Schema(example = "0.0")
-        Double spdXMax;
-
-        @Schema(example = "29818.407")
-        Double spdYMin;
-
-        @Schema(example = "29818.407")
-        Double spdYMax;
-
-        @Schema(example = "1913.967")
-        Double massMin;
-
-        @Schema(example = "1913.967")
-        Double massMax;
-
-        @Schema(example = "10.5")
-        Double fuelMassPercentMin;
-
-        @Schema(example = "10.5")
-        Double fuelMassPercentMax;
+        Pair<Double, Double> fuelMassPercent;
     }
 
     @Value
@@ -81,16 +59,8 @@ public class SimParametersRandomCreationRequestV1Dto {
     @AllArgsConstructor
     public static class EngineRandomCreationRequestV1Dto {
 
-        @Schema(example = "4.317E-5")
-        Double fuelConsumptionMin;
+        Pair<Double, Double> fuelConsumption;
 
-        @Schema(example = "4.317E-5")
-        Double fuelConsumptionMax;
-
-        @Schema(example = "0.828")
-        Double thrustMin;
-
-        @Schema(example = "0.828")
-        Double thrustMax;
+        Pair<Double, Double> thrust;
     }
 }

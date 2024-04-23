@@ -2,7 +2,6 @@ package org.klimashin.ga.segmented.trajectory.domain.model.method;
 
 import java.util.function.Function;
 
-//TODO: заменить классы исключений
 public class NewtonsMethod {
 
     Function<Double, Double> function;

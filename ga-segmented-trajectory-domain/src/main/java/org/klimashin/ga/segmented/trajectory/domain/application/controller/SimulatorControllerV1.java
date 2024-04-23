@@ -23,13 +23,15 @@ public class SimulatorControllerV1 {
 
     SimulatorFacade simulatorFacade;
 
+    @Async
     @PostMapping("/simulator/start-calculate")
     public void calculateSimulation(@RequestBody SimParametersCreationRequestV1Dto creationRequest) {
         simulatorFacade.createSimParametersAndStartCalculation(creationRequest);
     }
 
+    @Async
     @PostMapping("/simulator/start-random-calculate")
     public void calculateRandomSimulations(@RequestBody SimParametersRandomCreationRequestV1Dto randomCreationRequest) {
-
+        simulatorFacade.runRandomCalculations(randomCreationRequest);
     }
 }

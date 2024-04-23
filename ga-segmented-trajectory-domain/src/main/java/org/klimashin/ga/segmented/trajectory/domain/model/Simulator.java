@@ -1,30 +1,18 @@
 package org.klimashin.ga.segmented.trajectory.domain.model;
 
-import static org.klimashin.ga.segmented.trajectory.domain.model.common.Physics.G;
-
 import org.klimashin.ga.segmented.trajectory.domain.model.common.Physics;
 import org.klimashin.ga.segmented.trajectory.domain.model.component.CelestialBody;
 import org.klimashin.ga.segmented.trajectory.domain.model.component.CelestialBodyName;
-import org.klimashin.ga.segmented.trajectory.domain.model.component.Orbit;
 import org.klimashin.ga.segmented.trajectory.domain.model.component.Spacecraft;
 import org.klimashin.ga.segmented.trajectory.domain.model.component.condition.TargetState;
 import org.klimashin.ga.segmented.trajectory.domain.model.component.profile.CommandProfile;
-import org.klimashin.ga.segmented.trajectory.domain.util.component.Point;
 import org.klimashin.ga.segmented.trajectory.domain.util.component.Vector;
 
 import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class Simulator {
@@ -62,52 +50,6 @@ public class Simulator {
 
         return env;
     }
-
-    /*
-    public List<Environment> detailedExecute(final int nodesCount) throws RuntimeException {
-        var resultSet = new ArrayList<Environment>();
-
-        var deltaTime = 100L;
-
-        var iteration = 0;
-        var compressionRate = 1;
-
-        while (env.getCurrentTime() < maxDuration) {
-            executeStep(env.getCurrentTime(), deltaTime);
-
-            if (iteration % compressionRate == 0) {
-                resultSet.add(env.copy());
-
-                if (resultSet.size() > nodesCount) {
-                    compressionRate *= 2;
-
-                    var compressedResultSet = IntStream.range(0, resultSet.size())
-                            .filter(value -> value % 2 == 0)
-                            .mapToObj(resultSet::get)
-                            .collect(Collectors.toCollection(ArrayList::new));
-
-                    var lastElement = resultSet.get(resultSet.size() - 1);
-                    if (!compressedResultSet.contains(lastElement)) {
-                        compressedResultSet.add(lastElement);
-                    }
-
-                    resultSet = compressedResultSet;
-                }
-            }
-
-            if (env.getTargetState().isAchieved()) {
-                resultSet.add(env.copy());
-                return resultSet;
-            }
-
-            env.incrementTime(deltaTime);
-            iteration++;
-        }
-
-        resultSet.add(env.copy());
-        return resultSet;
-    }
-    */
 
     protected void executeStep(long currentTime, long deltaTime) {
         var isEnoughFuel = spacecraft.getFuelMass() > 0 && spacecraft.isEnoughFuel(deltaTime);

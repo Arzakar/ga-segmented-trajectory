@@ -14,6 +14,10 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class Pair<LEFT, RIGHT> {
 
+    public static <LEFT, RIGHT> Pair<LEFT, RIGHT> of(LEFT left, RIGHT right) {
+        return new Pair<>(left, right);
+    }
+
     LEFT left;
     RIGHT right;
 }

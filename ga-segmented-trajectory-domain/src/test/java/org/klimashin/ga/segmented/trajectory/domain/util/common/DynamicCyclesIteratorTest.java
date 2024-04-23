@@ -59,4 +59,17 @@ class DynamicCyclesIteratorTest {
         verify(function, never()).accept(new Number[]{20, 50d, 2});
         verify(function).accept(new Number[]{20, 50d, 3});
     }
+
+    @Test
+    void bulkExecute_shouldExecuteAllIterations() {
+        var components = Map.of(
+                0, new Number[]{10, 20, 30},
+                1, new Number[]{50d, 100d},
+                2, new Number[]{1, 2, 3}
+        );
+
+        new DynamicCyclesIterator(components).bulkExecute(function);
+
+        verify(function, times(18)).accept(any());
+    }
 }
