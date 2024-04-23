@@ -1,13 +1,13 @@
 package org.klimashin.ga.segmented.trajectory.domain.model.component.condition;
 
-import org.klimashin.ga.segmented.trajectory.domain.model.component.MassParticle;
+import org.klimashin.ga.segmented.trajectory.domain.model.component.Particle;
 import org.klimashin.ga.segmented.trajectory.domain.util.common.Points;
 
 import lombok.Builder;
 
 @Builder
-public record ProximityOfTwoObjects(MassParticle firstParticle,
-                                    MassParticle secondParticle,
+public record ProximityOfTwoObjects(Particle firstParticle,
+                                    Particle secondParticle,
                                     double requiredDistance) implements TargetState {
 
     public boolean isAchieved() {

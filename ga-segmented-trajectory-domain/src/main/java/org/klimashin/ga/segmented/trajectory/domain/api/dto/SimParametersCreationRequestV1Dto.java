@@ -9,37 +9,23 @@ import lombok.extern.jackson.Jacksonized;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.util.List;
 import java.util.Map;
 
 @Value
 @Builder
 @Jacksonized
 @AllArgsConstructor
-public class SimParametersCreationRequestDto {
+public class SimParametersCreationRequestV1Dto {
 
     @Schema(example = "SOLAR")
-    CelestialBodyName centralBody;
+    CelestialBodyName centralBodyName;
 
-    @Schema(example = "{\"EARTH\": 0}")
-    Map<CelestialBodyName, Double> celestialBodiesByAnomalies;
+    List<CelestialBodyV1Dto> celestialBodies;
 
-    @Schema(example = "[146100393440, 0]")
-    Double[] spacecraftPos;
+    SpacecraftV1Dto spacecraft;
 
-    @Schema(example = "[0.0, 29818.407]")
-    Double[] spacecraftSpd;
-
-    @Schema(example = "1913.967")
-    Double spacecraftMass;
-
-    @Schema(example = "1009.062")
-    Double spacecraftFuelMass;
-
-    @Schema(example = "4.317E-5")
-    Double engineFuelConsumption;
-
-    @Schema(example = "0.828")
-    Double engineThrust;
+    EngineV1Dto engine;
 
     @Schema(example = "{\"0\": [[10, 30], [14.918, 80.885]], \"1\": [[70, 170], [113.869, 179.836]]}")
     Map<Integer, Number[][]> controlVariations;

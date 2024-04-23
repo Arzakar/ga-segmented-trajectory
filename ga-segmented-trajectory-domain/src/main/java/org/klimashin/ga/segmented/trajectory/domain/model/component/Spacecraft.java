@@ -11,7 +11,7 @@ import lombok.experimental.FieldDefaults;
 @Getter
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Spacecraft implements MassParticle {
+public class Spacecraft implements Particle {
 
     final Point position;
     final Vector speed;

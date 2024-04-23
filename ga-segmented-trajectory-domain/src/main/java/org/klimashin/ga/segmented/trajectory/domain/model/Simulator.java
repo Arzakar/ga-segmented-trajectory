@@ -13,6 +13,7 @@ import org.klimashin.ga.segmented.trajectory.domain.util.component.Point;
 import org.klimashin.ga.segmented.trajectory.domain.util.component.Vector;
 
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
@@ -25,29 +26,27 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-@Slf4j
-@RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class Simulator {
 
     private static final long maxDuration = Duration.ofDays(365).toSeconds();
 
     Environment env;
+    CommandProfile commandProfile;
+    TargetState targetState;
 
     CelestialBody centralBody;
     Map<CelestialBodyName, CelestialBody> celestialBodies;
     Spacecraft spacecraft;
-    CommandProfile commandProfile;
-    TargetState targetState;
 
-    public Simulator(Environment env) {
+    public Simulator(Environment env, CommandProfile commandProfile, TargetState targetState) {
         this.env = env;
+        this.commandProfile = commandProfile;
+        this.targetState = targetState;
 
         this.centralBody = env.getCentralBody();
         this.celestialBodies = env.getCelestialBodies();
         this.spacecraft = env.getSpacecraft();
-        this.commandProfile = env.getCommandProfile();
-        this.targetState = env.getTargetState();
     }
 
     public Environment execute(long deltaTime) {
@@ -55,14 +54,6 @@ public class Simulator {
             executeStep(env.getCurrentTime(), deltaTime);
 
             if (targetState.isAchieved()) {
-                var orbitsAfterGa = calculateGravityAssistManeuver();
-                var mostHighlyOrbit = orbitsAfterGa[0].getApocenter() >= orbitsAfterGa[1].getApocenter()
-                        ? orbitsAfterGa[0]
-                        : orbitsAfterGa[1];
-
-                env.injectResultOrbit(mostHighlyOrbit);
-                env.injectResultOrbits(orbitsAfterGa[0], orbitsAfterGa[1]);
-
                 return env;
             }
 
@@ -72,6 +63,7 @@ public class Simulator {
         return env;
     }
 
+    /*
     public List<Environment> detailedExecute(final int nodesCount) throws RuntimeException {
         var resultSet = new ArrayList<Environment>();
 
@@ -115,6 +107,7 @@ public class Simulator {
         resultSet.add(env.copy());
         return resultSet;
     }
+    */
 
     protected void executeStep(long currentTime, long deltaTime) {
         var isEnoughFuel = spacecraft.getFuelMass() > 0 && spacecraft.isEnoughFuel(deltaTime);
@@ -122,7 +115,7 @@ public class Simulator {
         var gravForceByCentral = Physics.gravitationForce(spacecraft, centralBody);
         var gravForceByBodies = Vector.zero();
 
-        /** Пока убираем расчёт влияния Земли на КА
+        /* TODO: Пока убираем расчёт влияния Земли на КА
         var gravForceByBodies = celestialBodies.values().stream()
                 .map(celestialBody -> Physics.gravitationForce(spacecraft, celestialBody))
                 .reduce(Vector.zero(), Vector::add);
@@ -144,65 +137,34 @@ public class Simulator {
         }
     }
 
-    protected Orbit[] calculateGravityAssistManeuver() {
-        var earth = celestialBodies.get(CelestialBodyName.EARTH);
+    public static SimulatorBuilder builder() {
+        return new SimulatorBuilder();
+    }
 
-        var earthIncomingPos = earth.getPosition().copy();
-        var earthIncomingSpd = earth.getSpeed().copy();
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class SimulatorBuilder {
 
-        var spacecraftIncomingPos = spacecraft.getPosition().asRadiusVector().subtract(earthIncomingPos.asRadiusVector());
-        var spacecraftIncomingSpd = spacecraft.getSpeed().copy().subtract(earthIncomingSpd);
+        Environment env;
+        CommandProfile commandProfile;
+        TargetState targetState;
 
-        var earthGravRad = 1_000_000_000;
-        var earthGravParam = G * earth.getMass();
-        var rHyp = 10_000_000d;
-        var aHyp = earthGravParam / Math.pow(spacecraftIncomingSpd.getScalar(), 2);
-        var bHyp = rHyp * Math.sqrt(1 + (2 * aHyp / rHyp));
-        var eHyp = rHyp / aHyp + 1;
-        var eHypDiff = Math.pow(eHyp, 2) - 1;
-        var pHyp = aHyp * eHypDiff;
-
-        var gamma = Math.atan(aHyp / bHyp);
-        var alpha = Math.PI / 2 - gamma;
-        var uOut = Math.acos((pHyp - earthGravRad) / (earthGravRad * eHyp));
-        var sinUOut = Math.sin(uOut);
-        var cosUOut = Math.cos(uOut);
-        var A = ((eHyp * sinUOut + Math.sqrt(eHypDiff)) / (1 + eHyp * cosUOut)) + (1 / Math.sqrt(eHypDiff));
-        var tSemiTrans = (Math.sqrt(pHyp / earthGravParam) / eHypDiff) * ((eHyp * pHyp * sinUOut / (1 + eHyp * cosUOut)) - (pHyp * Math.log(A) / Math.sqrt(eHyp - 1)));
-        var tTrans = tSemiTrans * 2;
-
-        if(tTrans <= 0) {
-            return null;
+        public SimulatorBuilder env(Environment env) {
+            this.env = env;
+            return this;
         }
 
-        var deltaTrueAnomaly = (tTrans / earth.getOrbit().getOrbitalPeriod()) * 2 * Math.PI;
+        public SimulatorBuilder commandProfile(CommandProfile commandProfile) {
+            this.commandProfile = commandProfile;
+            return this;
+        }
 
-        var earthOutgoingPos = earth.getOrbit().predictPosition(earth.getOrbit().getTrueAnomaly() + deltaTrueAnomaly);
-        var earthOutgoingSpd = earth.getOrbit().predictSpeed(earth.getOrbit().getTrueAnomaly() + deltaTrueAnomaly);
+        public SimulatorBuilder targetState(TargetState targetState) {
+            this.targetState = targetState;
+            return this;
+        }
 
-        var radius = spacecraftIncomingPos.getScalar();
-        var cosFi = spacecraftIncomingPos.getX() / radius;
-        var sinFi = spacecraftIncomingPos.getY() / radius;
-        var fi = Math.signum(sinFi) >= 0
-                ? Math.acos(cosFi)
-                : 2 * Math.PI - Math.acos(cosFi);
-
-        var spacecraftRightOutgoingPos = ((Supplier<Point>) () -> {
-            var fiOut = fi + 2 * uOut;
-            var posAfterOut = Point.of(radius * Math.cos(fiOut), radius * Math.sin(fiOut)).asRadiusVector().add(earthOutgoingPos.asRadiusVector());
-            return Point.of(posAfterOut.getX(), posAfterOut.getY());
-        });
-        var spacecraftRightOutgoingSpd = spacecraftIncomingSpd.copy().rotate(2 * gamma).add(earthOutgoingSpd);
-        var rightResultOrbit = Orbit.buildByObservation(spacecraftRightOutgoingPos.get(), spacecraftRightOutgoingSpd, centralBody);
-
-        var spacecraftLeftOutgoingPos = ((Supplier<Point>) () -> {
-            var fiOut = fi - 2 * uOut;
-            var posAfterOut = Point.of(radius * Math.cos(fiOut), radius * Math.sin(fiOut)).asRadiusVector().add(earthOutgoingPos.asRadiusVector());
-            return Point.of(posAfterOut.getX(), posAfterOut.getY());
-        });
-        var spacecraftLeftOutgoingSpd = spacecraftIncomingSpd.copy().rotate(-2 * gamma).add(earthOutgoingSpd);
-        var leftResultOrbit = Orbit.buildByObservation(spacecraftLeftOutgoingPos.get(), spacecraftLeftOutgoingSpd, centralBody);
-
-        return new Orbit[]{leftResultOrbit, rightResultOrbit};
+        public Simulator build() {
+            return new Simulator(this.env, this.commandProfile, this.targetState);
+        }
     }
 }

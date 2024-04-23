@@ -1,12 +1,19 @@
 package org.klimashin.ga.segmented.trajectory.domain.model.method;
 
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+
 import java.util.function.Function;
 
-//TODO: заменить классы исключений
-public record FixedPointIterationMethod(Function<Double, Double> function,
-                                        double desiredTolerance) {
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+public class FixedPointIterationMethod {
 
-    static final int maxIterations = 100;
+    private static final int maxIterations = 100;
+
+    Function<Double, Double> function;
+    double desiredTolerance;
 
     public double getSolution(double initialGuess) {
         if (initialGuess == 0) {

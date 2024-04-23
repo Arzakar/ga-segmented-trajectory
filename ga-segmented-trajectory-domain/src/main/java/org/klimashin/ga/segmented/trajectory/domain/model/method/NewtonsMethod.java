@@ -3,9 +3,11 @@ package org.klimashin.ga.segmented.trajectory.domain.model.method;
 import java.util.function.Function;
 
 //TODO: заменить классы исключений
-public record NewtonsMethod(Function<Double, Double> function,
-                            Function<Double, Double> derivative,
-                            double desiredTolerance) {
+public class NewtonsMethod {
+
+    Function<Double, Double> function;
+    Function<Double, Double> derivative;
+    double desiredTolerance;
 
     static int maxIterations = 100;
     static double minAbsApplicableDerivativeValue = 0.000000000001;
