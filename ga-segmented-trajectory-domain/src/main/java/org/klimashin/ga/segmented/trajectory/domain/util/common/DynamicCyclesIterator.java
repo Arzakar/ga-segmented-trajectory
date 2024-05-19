@@ -8,6 +8,8 @@ import lombok.Getter;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Duration;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.SortedMap;
@@ -79,6 +81,8 @@ public class DynamicCyclesIterator {
             var listOfElementsArray = new ArrayList<Number[]>();
 
             while (true) {
+                var startTime = LocalTime.now();
+
                 for (int i = 0; i < threadCount; i++) {
                     var elementsArray = components.entrySet().stream()
                             .sorted(Map.Entry.comparingByKey())
@@ -104,6 +108,10 @@ public class DynamicCyclesIterator {
                 } else {
                     listOfElementsArray.clear();
                 }
+
+                var finishTime = LocalTime.now();
+
+                log.info(String.valueOf(Duration.between(startTime, finishTime).toMillis()));
             }
 
         } catch (ExecutionException | InterruptedException e) {

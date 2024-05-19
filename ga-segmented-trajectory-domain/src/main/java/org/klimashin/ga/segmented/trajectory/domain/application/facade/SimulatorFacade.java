@@ -56,14 +56,14 @@ public class SimulatorFacade {
     public void startRandomCalculations() {
         while (true) {
             var spacecraftSpdY = 29700d + Math.random() * 300d;
-            var mass = 300d + Math.random() * 1700d;
-            var fuelMass = mass * (0.2 + Math.random() * 0.4);
-            var oneThrust = 150 + Math.random() * 250;
+            var mass = 300d + Math.random() * 2700d;
+            var fuelMass = mass * (0.1 + Math.random() * 0.7);
+            var oneThrust = 0.150 + Math.random() * 250;
             var consumption = 0.00001 + Math.random() * 0.00002;
             var engineCount = (int) (Math.random() * 3) + 1;
 
-            var intervalStep = 10L + (long) ((Math.random() * 4) - 2);
-            var deviationStep = 30d + ((Math.random() * 10) - 5);
+            var intervalStep = 10L + (long) ((Math.random() * 10) - 5);
+            var deviationStep = 30d + ((Math.random() * 30) - 15);
 
             var request = InitialCreationRequestDto.builder()
                     .centralBodyName(CelestialBodyName.SOLAR)
@@ -77,10 +77,10 @@ public class SimulatorFacade {
                     .mass(mass)
                     .fuelMass(fuelMass)
                     .thrust(oneThrust * engineCount)
-                    .intervalLeftBound(10L)
+                    .intervalLeftBound(5L)
                     .intervalRightBound(180L)
                     .intervalStep(intervalStep)
-                    .deviationLeftBound(-150d)
+                    .deviationLeftBound(-180d)
                     .deviationRightBound(180d)
                     .deviationStep(deviationStep)
                     .requiredDistance(1000000000d)
